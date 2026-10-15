@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>데일리 헬스 케어</title>
+  <!-- Chart.js 라이브러리 불러오기 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome 아이콘 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #4F46E5;
+      --primary-light: #EEF2FF;
+      --accent: #10B981;
+      --water: #3B82F6;
+      --water-light: #EFF6FF;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text-main: #1E293B;
+      --text-sub: #64748B;
+      --border: #E2E8F0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* 모바일 프레임 컨테이너 */
+    .mobile-container {
+      width: 100%;
+      max-width: 430px;
+      height: 100vh;
+      max-height: 932px;
+      background-color: var(--bg);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    @media (min-width: 431px) {
+      .mobile-container {
+        border-radius: 40px;
+        border: 10px solid #1E293B;
+        height: 880px;
+      }
+    }
+
+    /* 상단 헤더 */
+    header {
+      background: var(--card-bg);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+
+    .header-title h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .header-title p {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    /* 메인 컨텐츠 영역 */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      padding-bottom: 90px;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 카드 스타일 */
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      border: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 직관적인 카드형 대시보드 히어로 섹션 */
+    .dashboard-hero-card {
+      background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
+      color: white;
+      border-radius: 20px;
+      padding: 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 16px rgba(79, 70, 229, 0.2);
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .hero-top span {
+      font-size: 0.8rem;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .hero-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .hero-weight-val {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .hero-weight-label {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      margin-bottom: 2px;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .dashboard-mini-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .dashboard-mini-card .card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+
+    .dashboard-mini-card.water-card .card-icon { background: var(--water-light); color: var(--water); }
+    .dashboard-mini-card.meal-card .card-icon { background: #FEF3C7; color: #D97706; }
+
+    .dashboard-mini-card .val {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .dashboard-mini-card .lbl {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+    }
+
+    /* 버튼 스타일 */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:active { opacity: 0.9; transform: scale(0.98); }
+    .btn-water { background-color: var(--water); }
+    .btn-danger { background-color: #EF4444; }
+
+    /* 입력 그룹 */
+    .input-group {
+      margin-bottom: 14px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+    }
+
+    .input-group input, .input-group textarea, .input-group select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      background: var(--bg);
+      color: var(--text-main);
+      outline: none;
+    }
+
+    .input-group input:focus, .input-group textarea:focus {
+      border-color: var(--primary);
+      background: white;
+    }
+
+    /* 식단 리스트 스타일 */
+    .meal-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+
+    .meal-item:last-child { border-bottom: none; }
+
+    .meal-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: var(--bg);
+    }
+
+    .meal-info { flex: 1; }
+
+    .meal-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .meal-text {
+      font-size: 0.85rem;
+      color: var(--text-main);
+    }
+
+    .meal-date-text {
+      font-size: 0.7rem;
+      color: var(--text-sub);
+      margin-top: 2px;
+    }
+
+    /* 물마시기 UI 스타일 */
+    .water-tracker-card {
+      text-align: center;
+      background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+      border: 1px solid #BFDBFE;
+    }
+
+    .water-progress-circle {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--water);
+      margin: 10px 0;
+    }
+
+    .water-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .water-btn {
+      background: white;
+      border: 1px solid #93C5FD;
+      color: var(--water);
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+
+    .water-btn:active { background: #BFDBFE; }
+
+    /* 하단 네비게이션바 (탭 5개) */
+    nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      font-size: 0.65rem;
+      cursor: pointer;
+      width: 20%;
+      height: 100%;
+      gap: 4px;
+    }
+
+    .nav-item i {
+      font-size: 1.1rem;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+    }
+
+    /* 플로팅 버튼 (기록 추가) */
+    .fab {
+      position: absolute;
+      right: 20px;
+      bottom: 85px;
+      width: 52px;
+      height: 52px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+      border: none;
+      cursor: pointer;
+      z-index: 99;
+      transition: transform 0.2s;
+    }
+
+    .fab:active { transform: scale(0.92); }
+
+    /* 모달 팝업 */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: flex-end;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      width: 100%;
+      background: var(--card-bg);
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 24px;
+      max-height: 85vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+    }
+
+    .modal-overlay.open .modal-content {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-container">
+    <!-- 상단 헤더 -->
+    <header>
+      <div class="header-title">
+        <h1 id="headerTitle">대시보드</h1>
+        <p id="headerSubtitle">오늘의 건강 상태를 요약해드려요</p>
+      </div>
+      <div class="user-avatar">ME</div>
+    </header>
+
+    <!-- 컨텐츠 영역 -->
+    <div class="content-area">
+      
+      <!-- 1. 대시보드 (홈) 탭 -->
+      <div id="tab-dashboard" class="tab-content active">
+        <!-- 직관적인 카드형 히어로 섹션 -->
+        <div class="dashboard-hero-card">
+          <div class="hero-top">
+            <span id="heroDateDisplay">오늘</span>
+            <i class="fa-solid fa-heart-pulse" style="font-size: 1.2rem; opacity: 0.9;"></i>
+          </div>
+          <div class="hero-stats">
+            <div>
+              <div class="hero-weight-label">최근 기록 체중</div>
+              <div class="hero-weight-val" id="dashHeroWeight">- <span style="font-size: 1.2rem; font-weight: normal;">kg</span></div>
+            </div>
+            <div style="text-align: right; font-size: 0.8rem; opacity: 0.9;" id="dashGoalInfo">
+              목표: <strong id="goalDisplay">--</strong> kg
+            </div>
+          </div>
+        </div>
+
+        <!-- 미니 카드 그리드 (BMI, 물, 식단 요약) -->
+        <div class="dashboard-grid">
+          <div class="dashboard-mini-card" style="background: var(--card-bg);">
+            <div>
+              <div class="card-icon" style="background: #F3E8FF; color: #9333EA;"><i class="fa-solid fa-calculator"></i></div>
+              <div class="lbl">현재 BMI 지수</div>
+            </div>
+            <div class="val" id="dashBmiVal">-</div>
+          </div>
+          <div class="dashboard-mini-card water-card" onclick="switchTab('water', document.querySelectorAll('.nav-item')[3])" style="cursor:pointer;">
+            <div>
+              <div class="card-icon"><i class="fa-solid fa-droplet"></i></div>
+              <div class="lbl">오늘 마신 물</div>
+            </div>
+            <div class="val" id="dashMiniWater">0 <span style="font-size:0.8rem; font-weight:normal;">ml</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span>📈 최근 체중 변화 추이</span></div>
+          <div style="height: 160px; position: relative;">
+            <canvas id="miniWeightChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span>🥗 최근 식단 미리보기</span></div>
+          <div id="dashMealList"><p style="font-size:0.85rem; color:var(--text-sub); text-align:center; padding:10px 0;">기록된 식단이 없습니다.</p></div>
+        </div>
+      </div>
+
+      <!-- 2. 체중 기록 탭 -->
+      <div id="tab-weight" class="tab-content">
+        <div class="card">
+          <div class="card-title"><span>체중 변화 그래프</span></div>
+          <div style="height: 220px; position: relative;">
+            <canvas id="fullWeightChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>체중 기록 목록</span></div>
+          <div id="weightLogList"><p style="font-size:0.85rem; color:var(--text-sub); text-align:center; padding:10px 0;">기록이 없습니다.</p></div>
+        </div>
+      </div>
+
+      <!-- 3. 식단 기록 탭 -->
+      <div id="tab-meals" class="tab-content">
+        <div class="card">
+          <div class="card-title"><span>식단 타임라인 사진첩</span></div>
+          <div id="fullMealList"><p style="font-size:0.85rem; color:var(--text-sub); text-align:center; padding:10px 0;">저장된 식단이 없습니다.</p></div>
+        </div>
+      </div>
+
+      <!-- 4. 물 마시기 탭 -->
+      <div id="tab-water" class="tab-content">
+        <div class="card water-tracker-card">
+          <div class="card-title" style="justify-content: center; color: var(--water);"><span>💧 오늘 수분 섭취량</span></div>
+          <div class="water-progress-circle"><span id="waterAmountText">0</span> <span style="font-size:1rem; font-weight:normal;" id="waterGoalUnitText">/ 2000 ml</span></div>
+          <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom: 10px;" id="waterGoalDescText">권장 섭취량 목표치 기준</p>
+          
+          <div style="width:100%; background:#BFDBFE; height:8px; border-radius:4px; overflow:hidden; margin-bottom:15px;">
+            <div id="waterProgressBar" style="width:0%; background:var(--water); height:100%; transition: width 0.3s;"></div>
+          </div>
+
+          <div class="water-buttons">
+            <button class="water-btn" onclick="addWater(250)">+250ml<br>(한 컵)</button>
+            <button class="water-btn" onclick="addWater(500)">+500ml<br>(텀블러)</button>
+            <button class="water-btn" onclick="resetWater()" style="color:#EF4444; border-color:#FCA5A5;">초기화</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span>🗓️ 오늘 수분 섭취 현황</span></div>
+          <div id="waterHistoryList"><p style="font-size:0.85rem; color:var(--text-sub); text-align:center; padding:10px 0;">오늘 기록이 없습니다.</p></div>
+        </div>
+      </div>
+
+      <!-- 5. 설정 탭 -->
+      <div id="tab-settings" class="tab-content">
+        <div class="card">
+          <div class="card-title"><span>🎯 목표 및 신체 설정</span></div>
+          <div class="input-group">
+            <label>신장 / 키 (cm)</label>
+            <input type="number" id="settingHeight" step="0.1" placeholder="예: 170.0">
+          </div>
+          <div class="input-group">
+            <label>목표 체중 (kg)</label>
+            <input type="number" id="settingGoalWeight" step="0.1" placeholder="예: 60.0">
+          </div>
+          <div class="input-group">
+            <label>하루 물 마시기 목표 (ml)</label>
+            <input type="number" id="settingGoalWater" step="100" placeholder="예: 2000">
+          </div>
+          <button class="btn" onclick="saveSettings()">설정 저장하기</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span>⚙️ 데이터 관리</span></div>
+          <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 12px;">모든 기록과 설정 데이터를 초기화합니다. (주의: 삭제된 데이터는 복구할 수 없습니다)</p>
+          <button class="btn btn-danger" onclick="clearAllData()">전체 데이터 초기화</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 플로팅 기록 추가 버튼 -->
+    <button class="fab" onclick="openModal()"><i class="fa-solid fa-plus"></i></button>
+
+    <!-- 하단 네비게이션바 (탭 5개) -->
+    <nav>
+      <button class="nav-item active" onclick="switchTab('dashboard', this)">
+        <i class="fa-solid fa-house"></i>
+        <span>홈</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('weight', this)">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>체중</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('meals', this)">
+        <i class="fa-solid fa-utensils"></i>
+        <span>식단</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('water', this)">
+        <i class="fa-solid fa-droplet"></i>
+        <span>물마시기</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('settings', this)">
+        <i class="fa-solid fa-gear"></i>
+        <span>설정</span>
+      </button>
+    </nav>
+
+    <!-- 기록 추가 모달 -->
+    <div class="modal-overlay" id="recordModal" onclick="handleModalClick(event)">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>오늘의 건강 기록</h3>
+          <button class="close-btn" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div class="input-group">
+          <label>기록 날짜</label>
+          <input type="date" id="inputDate">
+        </div>
+
+        <div class="input-group">
+          <label>오늘 체중 (kg) - 선택사항</label>
+          <input type="number" id="inputWeight" step="0.1" placeholder="예: 65.4">
+        </div>
+
+        <div class="input-group">
+          <label>식사 종류</label>
+          <select id="inputMealType">
+            <option value="아침">아침 식단</option>
+            <option value="점심" selected>점심 식단</option>
+            <option value="저녁">저녁 식단</option>
+            <option value="간식">간식 / 기타</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label>식단 사진 - 선택사항</label>
+          <input type="file" id="inputPhoto" accept="image/*">
+        </div>
+
+        <div class="input-group">
+          <label>식단 메모</label>
+          <textarea id="inputNote" rows="2" placeholder="어떤 음식을 드셨나요?"></textarea>
+        </div>
+
+        <button class="btn" onclick="saveNewRecord()">저장하기</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // 오늘 날짜 기본 세팅
+    const todayStr = new Date().toISOString().substring(0, 10);
+    document.getElementById('inputDate').value = todayStr;
+    document.getElementById('heroDateDisplay').innerText = todayStr;
+
+    // 데이터 로드 및 초기화
+    let records = JSON.parse(localStorage.getItem('healthRecordsV4')) || [
+      { date: '2026-10-14', weight: 65.8, mealType: '점심', photo: null, note: '샐러드와 닭가슴살' },
+      { date: '2026-10-15', weight: 65.5, mealType: '저녁', photo: null, note: '현미밥과 된장찌개' }
+    ];
+
+    let waterRecords = JSON.parse(localStorage.getItem('waterRecordsV4')) || {};
+    let settings = JSON.parse(localStorage.getItem('healthSettingsV4')) || { height: 170.0, goalWeight: 60.0, goalWater: 2000 };
+
+    let miniChart, fullChart;
+
+    window.onload = function() {
+      // 설정값 UI 반영
+      document.getElementById('settingHeight').value = settings.height || '';
+      document.getElementById('settingGoalWeight').value = settings.goalWeight;
+      document.getElementById('settingGoalWater').value = settings.goalWater;
+      document.getElementById('goalDisplay').innerText = settings.goalWeight;
+
+      initCharts();
+      updateUI();
+    };
+
+    // 탭 전환 기능
+    function switchTab(tabName, el) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+      document.getElementById('tab-' + tabName).classList.add('active');
+      if(el) el.classList.add('active');
+
+      // 상단 타이틀 변경
+      const titles = {
+        dashboard: ["대시보드", "오늘의 건강 상태를 요약해드려요"],
+        weight: ["체중 기록", "체중 변화 추이를 분석합니다"],
+        meals: ["식단 앨범", "기록된 식단 사진 모음"],
+        water: ["수분 섭취", "하루 물 마시기 목표 관리"],
+        settings: ["환경 설정", "목표치 및 신체 정보 관리"]
+      };
+      document.getElementById('headerTitle').innerText = titles[tabName][0];
+      document.getElementById('headerSubtitle').innerText = titles[tabName][1];
+
+      if(tabName === 'weight' || tabName === 'dashboard') {
+        updateCharts();
+      }
+    }
+
+    // 모달 제어
+    function openModal() { document.getElementById('recordModal').classList.add('open'); }
+    function closeModal() { document.getElementById('recordModal').classList.remove('open'); }
+    function handleModalClick(e) { if(e.target === document.getElementById('recordModal')) closeModal(); }
+
+    // 기록 저장
+    function saveNewRecord() {
+      const date = document.getElementById('inputDate').value;
+      const weight = parseFloat(document.getElementById('inputWeight').value);
+      const mealType = document.getElementById('inputMealType').value;
+      const note = document.getElementById('inputNote').value;
+      const photoInput = document.getElementById('inputPhoto');
+
+      if (!date) { alert("날짜를 선택해주세요."); return; }
+
+      const proceed = (photoData) => {
+        records.push({
+          date,
+          weight: isNaN(weight) ? null : weight,
+          mealType,
+          photo: photoData,
+          note
+        });
+        records.sort((a,b) => new Date(a.date) - new Date(b.date));
+        localStorage.setItem('healthRecordsV4', JSON.stringify(records));
+
+        // 입력창 초기화
+        document.getElementById('inputWeight').value = '';
+        document.getElementById('inputNote').value = '';
+        document.getElementById('inputPhoto').value = '';
+
+        closeModal();
+        updateUI();
+      };
+
+      if (photoInput.files && photoInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => proceed(e.target.result);
+        reader.readAsDataURL(photoInput.files[0]);
+      } else {
+        proceed(null);
+      }
+    }
+
+    // 설정 저장
+    function saveSettings() {
+      const height = parseFloat(document.getElementById('settingHeight').value);
+      const gWeight = parseFloat(document.getElementById('settingGoalWeight').value);
+      const gWater = parseInt(document.getElementById('settingGoalWater').value);
+
+      if(isNaN(height) || isNaN(gWeight) || isNaN(gWater)) {
+        alert("모든 설정값을 올바른 숫자로 입력해주세요.");
+        return;
+      }
+
+      settings.height = height;
+      settings.goalWeight = gWeight;
+      settings.goalWater = gWater;
+      localStorage.setItem('healthSettingsV4', JSON.stringify(settings));
+
+      document.getElementById('goalDisplay').innerText = settings.goalWeight;
+      updateWaterUI();
+      updateBMI();
+      alert("설정이 저장되었습니다!");
+    }
+
+    // 전체 데이터 초기화
+    function clearAllData() {
+      if(confirm("정말로 모든 기록과 설정을 초기화하시겠습니까?")) {
+        localStorage.removeItem('healthRecordsV4');
+        localStorage.removeItem('waterRecordsV4');
+        localStorage.removeItem('healthSettingsV4');
+        location.reload();
+      }
+    }
+
+    // 물 마시기 기능
+    function addWater(amount) {
+      if(!waterRecords[todayStr]) waterRecords[todayStr] = 0;
+      waterRecords[todayStr] += amount;
+      localStorage.setItem('waterRecordsV4', JSON.stringify(waterRecords));
+      updateWaterUI();
+    }
+
+    function resetWater() {
+      waterRecords[todayStr] = 0;
+      localStorage.setItem('waterRecordsV4', JSON.stringify(waterRecords));
+      updateWaterUI();
+    }
+
+    function updateWaterUI() {
+      const currentWater = waterRecords[todayStr] || 0;
+      const goalWater = settings.goalWater || 2000;
+
+      document.getElementById('dashMiniWater').innerHTML = `${currentWater} <span style="font-size:0.8rem; font-weight:normal;">ml</span>`;
+      document.getElementById('waterAmountText').innerText = currentWater;
+      document.getElementById('waterGoalUnitText').innerText = `/ ${goalWater} ml`;
+      document.getElementById('waterGoalDescText').innerText = `목표 섭취량: ${goalWater.toLocaleString()}ml`;
+      
+      const percent = Math.min(Math.round((currentWater / goalWater) * 100), 100);
+      document.getElementById('waterProgressBar').style.width = percent + '%';
+
+      // 물 히스토리 목록
+      const historyEl = document.getElementById('waterHistoryList');
+      if (currentWater === 0) {
+        historyEl.innerHTML = `<p style="font-size:0.85rem; color:var(--text-sub); text-align:center; padding:10px 0;">오늘 마신 물 기록이 없습니다.</p>`;
+      } else {
+        historyEl.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:0.9rem;">
+            <span><i class="fa-solid fa-droplet" style="color:var(--water);"></i> 오늘 수분 섭취 누적</span>
+            <span style="font-weight:700; color:var(--water);">${currentWater} ml (${percent}%)</span>
+          </div>
+        `;
+      }
+    }
+
+    // BMI 계산 및 표시
+    function updateBMI() {
+      const weightRecords = records.filter(r => r.weight !== null);
+      const bmiEl = document.getElementById('dashBmiVal');
+
+      if(weightRecords.length === 0 || !settings.height || settings.height <= 0) {
+        bmiEl.innerText = '-';
+        return;
+      }
+
+      const latestWeight = weightRecords[weightRecords.length - 1].weight;
+      const heightM = settings.height / 100; // cm -> m
+      const bmi = (latestWeight / (heightM * heightM)).toFixed(1);
+
+      let status = '';
+      if (bmi < 18.5) status = ' (저체중)';
+      else if (bmi < 23) status = ' (정상)';
+      else if (bmi < 25) status = ' (과체중)';
+      else status = ' (비만)';
+
+      bmiEl.innerHTML = `${bmi} <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-sub);">${status}</span>`;
+    }
+
+    // UI 전체 갱신
+    function updateUI() {
+      // 대시보드 현재 체중
+      const weightRecords = records.filter(r => r.weight !== null);
+      if(weightRecords.length > 0) {
+        const latest = weightRecords[weightRecords.length - 1];
+        document.getElementById('dashHeroWeight').innerHTML = `${latest.weight} <span style="font-size: 1.2rem; font-weight: normal;">kg</span>`;
+      }
+
+      updateBMI();
+      updateWaterUI();
+      updateMealLists();
+      updateWeightLists();
+      updateCharts();
+    }
+
+    // 식단 목록 렌더링
+    function updateMealLists() {
+      const mealRecords = [...records].reverse();
+      const dashHtml = mealRecords.length === 0 ? '<p style="font-size:0.85rem; color:var(--text-sub); text-align:center; padding:10px 0;">기록된 식단이 없습니다.</p>' :
+        mealRecords.slice(0, 2).map(r => renderMealItemHTML(r)).join('');
+      
+      const fullHtml = mealRecords.length === 0 ? '<p style="font-size:0.85rem; color:var(--text-sub); text-align:center; padding:10px 0;">저장된 식단이 없습니다.</p>' :
+        mealRecords.map(r => renderMealItemHTML(r)).join('');
+
+      document.getElementById('dashMealList').innerHTML = dashHtml;
+      document.getElementById('fullMealList').innerHTML = fullHtml;
+    }
+
+    function renderMealItemHTML(r) {
+      return `
+        <div class="meal-item">
+          ${r.photo ? `<img src="${r.photo}" class="meal-thumb">` : `<div class="meal-thumb" style="display:flex;align-items:center;justify-content:center;color:#CBD5E1;font-size:0.75rem;">사진없음</div>`}
+          <div class="meal-info">
+            <span class="meal-badge">${r.mealType}</span>
+            <div class="meal-text">${r.note || '메모 없음'}</div>
+            <div class="meal-date-text">${r.date}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 체중 기록 리스트 렌더링
+    function updateWeightLists() {
+      const weightRecords = records.filter(r => r.weight !== null).reverse();
+      const el = document.getElementById('weightLogList');
+      if(weightRecords.length === 0) {
+        el.innerHTML = '<p style="font-size:0.85rem; color:var(--text-sub); text-align:center; padding:10px 0;">기록이 없습니다.</p>';
+        return;
+      }
+      el.innerHTML = weightRecords.map(r => `
+        <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:0.9rem;">
+          <span style="color:var(--text-sub);">${r.date}</span>
+          <span style="font-weight:700;">${r.weight} kg</span>
+        </div>
+      `).join('');
+    }
+
+    // Chart.js 초기화 및 업데이트
+    function initCharts() {
+      const miniCtx = document.getElementById('miniWeightChart').getContext('2d');
+      miniChart = createChartConfig(miniCtx);
+
+      const fullCtx = document.getElementById('fullWeightChart').getContext('2d');
+      fullChart = createChartConfig(fullCtx);
+    }
+
+    function createChartConfig(ctx) {
+      return new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ data: [], borderColor: '#4F46E5', backgroundColor: 'rgba(79, 70, 229, 0.08)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } } }
+      });
+    }
+
+    function updateCharts() {
+      const weightData = records.filter(r => r.weight !== null);
+      const labels = weightData.map(r => r.date.substring(5)); // MM-DD
+      const data = weightData.map(r => r.weight);
+
+      if(miniChart) {
+        miniChart.data.labels = labels;
+        miniChart.data.datasets[0].data = data;
+        miniChart.update();
+      }
+      if(fullChart) {
+        fullChart.data.labels = labels;
+        fullChart.data.datasets[0].data = data;
+        fullChart.update();
+      }
+    }
+  </script>
+</body>
+</html>
